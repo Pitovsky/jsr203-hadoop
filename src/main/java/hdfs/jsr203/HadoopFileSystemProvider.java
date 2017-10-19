@@ -47,8 +47,10 @@ import org.apache.hadoop.fs.PathFilter;
  * <p>This provider implements the actual {@code META-INF/services/} entry.
  */
 public class HadoopFileSystemProvider extends FileSystemProvider {
-
   public static final String SCHEME = "hdfs";
+
+  public static final String HDFS_CORE_PATH_ENV = "HADOOP_HDFS_CORE";
+  public static final String SITE_CORE_PATH_ENV = "HADOOP_SITE_CORE";
 
   // Copy-cat of
   // org.apache.hadoop.mapreduce.lib.input.FileInputFormat.hiddenFileFilter
@@ -155,7 +157,11 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
 
   @Override
   public FileSystem newFileSystem(URI uri, Map<String, ?> env) throws IOException {
-    return new HadoopFileSystem(this, uri.getHost(), uri.getPort());
+    if (uri.getHost() != null) {
+      return new HadoopFileSystem(this, uri.getHost(), uri.getPort());
+    }
+    return new HadoopFileSystem(this,
+      URI.create((String) env.get(HDFS_CORE_PATH_ENV)),URI.create((String) env.get(SITE_CORE_PATH_ENV)));
   }
 
   @SuppressWarnings("unchecked")

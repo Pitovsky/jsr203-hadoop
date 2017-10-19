@@ -25,6 +25,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
@@ -113,8 +114,19 @@ public class HadoopFileSystem extends FileSystem {
     }
 
     this.fs = org.apache.hadoop.fs.FileSystem.get(conf);
-
     this.userPrincipalLookupService = new HadoopUserPrincipalLookupService(this);
+  }
+
+  public HadoopFileSystem(FileSystemProvider provider, URI hdfsSiteConf, URI coreSiteConf) throws IOException {
+    this.provider = provider;
+    this.userPrincipalLookupService = new HadoopUserPrincipalLookupService(this);
+
+    Configuration conf = new Configuration();
+    conf.addResource(hdfsSiteConf.toURL());
+    conf.addResource(coreSiteConf.toURL());
+    conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
+    conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+    this.fs = org.apache.hadoop.fs.FileSystem.get(conf);
   }
 
   private final void beginWrite() {
