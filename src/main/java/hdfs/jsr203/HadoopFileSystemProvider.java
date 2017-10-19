@@ -35,7 +35,6 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.spi.FileSystemProvider;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,8 +48,7 @@ import org.apache.hadoop.fs.PathFilter;
 public class HadoopFileSystemProvider extends FileSystemProvider {
   public static final String SCHEME = "hdfs";
 
-  public static final String HDFS_CORE_PATH_ENV = "HADOOP_HDFS_CORE";
-  public static final String SITE_CORE_PATH_ENV = "HADOOP_SITE_CORE";
+  private FileSystem fileSystem = null;
 
   // Copy-cat of
   // org.apache.hadoop.mapreduce.lib.input.FileInputFormat.hiddenFileFilter
@@ -106,11 +104,10 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
 
   @Override
   public FileSystem getFileSystem(URI uri) {
-    try {
-      return newFileSystem(uri, Collections.<String, Object>emptyMap());
-    } catch (IOException e) {
-      throw new FileSystemNotFoundException(e.getMessage());
+    if (fileSystem == null || !fileSystem.isOpen()) {
+      throw new FileSystemNotFoundException("FileSystem is closed or not yet initialized");
     }
+    return fileSystem;
   }
 
   @Override
@@ -160,7 +157,7 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
     if (uri.getHost() != null) {
       return new HadoopFileSystem(this, uri.getHost(), uri.getPort());
     }
-    return new HadoopFileSystem(this, (String) env.get(HDFS_CORE_PATH_ENV), (String) env.get(SITE_CORE_PATH_ENV));
+    return new HadoopFileSystem(this, env);
   }
 
   @SuppressWarnings("unchecked")

@@ -77,6 +77,9 @@ import org.apache.hadoop.fs.FileUtil;
 
 public class HadoopFileSystem extends FileSystem {
 
+  public static final String HDFS_SITE_PATH_ENV = "HADOOP_HDFS_SITE";
+  public static final String CORE_SITE_PATH_ENV = "HADOOP_CORE_SITE";
+
   private static final String GLOB_SYNTAX = "glob";
   private static final String REGEX_SYNTAX = "regex";
 
@@ -117,15 +120,24 @@ public class HadoopFileSystem extends FileSystem {
     this.userPrincipalLookupService = new HadoopUserPrincipalLookupService(this);
   }
 
-  public HadoopFileSystem(FileSystemProvider provider, String hdfsSiteConf, String coreSiteConf) throws IOException {
+  public HadoopFileSystem(FileSystemProvider provider, Map<String, ?> env) throws IOException {
     this.provider = provider;
     this.userPrincipalLookupService = new HadoopUserPrincipalLookupService(this);
 
     Configuration conf = new Configuration();
-    conf.addResource(new URL(hdfsSiteConf));
-    conf.addResource(new URL(coreSiteConf));
+    if (env.containsKey(HDFS_SITE_PATH_ENV)) {
+      conf.addResource(new URL(env.get(HDFS_SITE_PATH_ENV).toString()));
+    }
+    if (env.containsKey(CORE_SITE_PATH_ENV)) {
+      conf.addResource(new URL(env.get(CORE_SITE_PATH_ENV).toString()));
+    }
     conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
     conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+    for (Map.Entry<String, ?> config : env.entrySet()) {
+      if (!config.getKey().equals(HDFS_SITE_PATH_ENV) && !config.getKey().equals(CORE_SITE_PATH_ENV)) {
+        conf.set(config.getKey(), config.getValue().toString());
+      }
+    }
     this.fs = org.apache.hadoop.fs.FileSystem.get(conf);
   }
 
