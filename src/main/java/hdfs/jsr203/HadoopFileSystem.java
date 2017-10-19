@@ -775,10 +775,6 @@ public class HadoopFileSystem extends FileSystem {
 
   public Map<String, Object> readAttributes(HadoopPath hadoopPath,
                                             String attributes, LinkOption[] options) throws IOException {
-    // TODO Auto-generated method stub
-
-		/*public Map<String, Object> readAttributes(String attributes,
-				LinkOption[] options) throws IOException {*/
 
     String view;
     String attrs;
@@ -799,12 +795,6 @@ public class HadoopFileSystem extends FileSystem {
 
   public void setAttribute(HadoopPath hadoopPath, String attribute,
                            Object value, LinkOption[] options) throws IOException {
-    // TODO Auto-generated method stub
-		
-
-	    /*void setAttribute(String attribute, Object value, LinkOption... options)
-	            throws IOException
-		{*/
     String type;
     String attr;
     int colonPos = attribute.indexOf(':');
