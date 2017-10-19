@@ -160,8 +160,7 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
     if (uri.getHost() != null) {
       return new HadoopFileSystem(this, uri.getHost(), uri.getPort());
     }
-    return new HadoopFileSystem(this,
-      URI.create((String) env.get(HDFS_CORE_PATH_ENV)),URI.create((String) env.get(SITE_CORE_PATH_ENV)));
+    return new HadoopFileSystem(this, (String) env.get(HDFS_CORE_PATH_ENV), (String) env.get(SITE_CORE_PATH_ENV));
   }
 
   @SuppressWarnings("unchecked")
