@@ -28,36 +28,25 @@ import org.apache.hadoop.fs.Path;
 /**
  * Implement {@link BasicFileAttributeView}.
  */
-public class HadoopBasicFileAttributeView
-    implements BasicFileAttributeView, IAttributeReader, IAttributeWriter {
+public class HadoopBasicFileAttributeView implements BasicFileAttributeView, IAttributeView {
 
   private enum AttrID {
     size,
 
     creationTime,
-
     lastAccessTime,
-
     lastModifiedTime,
 
     isDirectory,
-
     isRegularFile,
-
     isSymbolicLink,
-
     isOther,
 
     fileKey,
-
     accessTime,
-
     blockSize,
-
     group,
-
     len,
-
     modificationTime,
 
     owner,
@@ -65,9 +54,10 @@ public class HadoopBasicFileAttributeView
     replication,
 
     isFile,
-
     isSymLink
-  };
+  }
+
+  ;
 
   private final HadoopPath path;
   private final boolean isHadoopView;
@@ -85,20 +75,20 @@ public class HadoopBasicFileAttributeView
   public HadoopBasicFileAttributes readAttributes() throws IOException {
     Path resolvedPath = path.getRawResolvedPath();
     FileStatus fileStatus = path.getFileSystem().getHDFS()
-        .getFileStatus(resolvedPath);
+      .getFileStatus(resolvedPath);
     String fileKey = resolvedPath.toString();
     return new HadoopBasicFileAttributes(fileKey, fileStatus);
   }
 
   @Override
   public void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime,
-      FileTime createTime) throws IOException {
+                       FileTime createTime) throws IOException {
     path.setTimes(lastModifiedTime, lastAccessTime, createTime);
   }
 
   @Override
   public void setAttribute(String attribute, Object value, LinkOption[] options)
-      throws IOException {
+    throws IOException {
     if (AttrID.valueOf(attribute) == AttrID.lastModifiedTime) {
       setTimes((FileTime) value, null, null);
     }
@@ -112,7 +102,7 @@ public class HadoopBasicFileAttributeView
 
   @Override
   public Map<String, Object> readAttributes(String attributes,
-      LinkOption[] options) throws IOException {
+                                            LinkOption[] options) throws IOException {
     HadoopBasicFileAttributes zfas = readAttributes();
     LinkedHashMap<String, Object> map = new LinkedHashMap<>();
     if ("*".equals(attributes)) {

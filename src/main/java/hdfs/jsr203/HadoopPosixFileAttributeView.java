@@ -34,7 +34,7 @@ import org.apache.hadoop.fs.Path;
  * Implementation of {@link PosixFileAttributeView}.
  */
 public class HadoopPosixFileAttributeView extends HadoopFileOwnerAttributeView
-    implements PosixFileAttributeView, IAttributeReader, IAttributeWriter {
+    implements PosixFileAttributeView, IAttributeView {
 
   private final HadoopPath path;
   /** posix or owner ? */
@@ -43,29 +43,24 @@ public class HadoopPosixFileAttributeView extends HadoopFileOwnerAttributeView
   private enum AttrID {
     // file
     lastModifiedTime,
-
     lastAccessTime,
-
     creationTime,
 
     size,
 
     isRegularFile,
-
     isDirectory,
-
     isSymbolicLink,
-
     isOther,
 
     fileKey,
-
-    // fileowner
     owner,
 
-    // posix
-    permissions, group
-  };
+    permissions,
+    group
+  }
+
+  ;
 
   public HadoopPosixFileAttributeView(HadoopPath path, boolean isPosixView) {
     super(path);
@@ -75,7 +70,7 @@ public class HadoopPosixFileAttributeView extends HadoopFileOwnerAttributeView
 
   @Override
   public void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime,
-      FileTime createTime) throws IOException {
+                       FileTime createTime) throws IOException {
     throw new IOException("Not implemented");
   }
 
@@ -91,15 +86,15 @@ public class HadoopPosixFileAttributeView extends HadoopFileOwnerAttributeView
   public PosixFileAttributes readAttributes() throws IOException {
     Path resolvedPath = path.getRawResolvedPath();
     FileStatus fileStatus = path.getFileSystem().getHDFS()
-        .getFileStatus(resolvedPath);
+      .getFileStatus(resolvedPath);
     String fileKey = resolvedPath.toString();
     return new HadoopPosixFileAttributes(this.path.getFileSystem(), fileKey,
-        fileStatus);
+      fileStatus);
   }
 
   @Override
   public void setPermissions(Set<PosixFilePermission> perms)
-      throws IOException {
+    throws IOException {
     throw new IOException("Not implemented");
   }
 
@@ -111,7 +106,7 @@ public class HadoopPosixFileAttributeView extends HadoopFileOwnerAttributeView
 
   @Override
   public Map<String, Object> readAttributes(String attributes,
-      LinkOption[] options) throws IOException {
+                                            LinkOption[] options) throws IOException {
     PosixFileAttributes zfas = readAttributes();
     LinkedHashMap<String, Object> map = new LinkedHashMap<>();
     if ("*".equals(attributes)) {
@@ -129,7 +124,7 @@ public class HadoopPosixFileAttributeView extends HadoopFileOwnerAttributeView
 
   @Override
   public void setAttribute(String attr, Object value, LinkOption[] options)
-      throws IOException {
+    throws IOException {
     // FIXME Implement HadoopPosixFileAttributeView.setAttribute()
     throw new UnsupportedOperationException();
   }

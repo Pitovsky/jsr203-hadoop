@@ -77,13 +77,13 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
 
   @Override
   public void copy(Path source, Path target, CopyOption... options)
-      throws IOException {
+    throws IOException {
     toHadoopPath(source).copy(toHadoopPath(target), options);
   }
 
   @Override
   public void createDirectory(Path dir, FileAttribute<?>... attrs)
-      throws IOException {
+    throws IOException {
     toHadoopPath(dir).createDirectory(attrs);
   }
 
@@ -93,10 +93,8 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
   }
 
   @Override
-  public <V extends FileAttributeView> V getFileAttributeView(Path path,
-      Class<V> type, LinkOption... options) {
-    return toHadoopPath(path).getFileSystem().getView(toHadoopPath(path),
-        type);
+  public <V extends FileAttributeView> V getFileAttributeView(Path path, Class<V> type, LinkOption... options) {
+    return toHadoopPath(path).getFileSystem().getAttributeView(toHadoopPath(path), type);
   }
 
   @Override
@@ -134,45 +132,39 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
   }
 
   @Override
-  public void move(Path source, Path target, CopyOption... options)
-      throws IOException {
+  public void move(Path source, Path target, CopyOption... options) throws IOException {
     toHadoopPath(source).move(toHadoopPath(target), options);
   }
 
   @Override
   public SeekableByteChannel newByteChannel(Path path,
-      Set<? extends OpenOption> options, FileAttribute<?>... attrs)
-      throws IOException {
+                                            Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
     return toHadoopPath(path).newByteChannel(options, attrs);
   }
 
   @Override
   public FileChannel newFileChannel(Path path,
-      Set<? extends OpenOption> options, FileAttribute<?>... attrs)
-      throws IOException {
+                                    Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
     return toHadoopPath(path).newFileChannel(options, attrs);
   }
 
   @Override
-  public DirectoryStream<Path> newDirectoryStream(Path dir,
-      Filter<? super Path> filter) throws IOException {
+  public DirectoryStream<Path> newDirectoryStream(Path dir, Filter<? super Path> filter) throws IOException {
     return toHadoopPath(dir).newDirectoryStream(filter);
   }
 
   @Override
-  public FileSystem newFileSystem(URI uri, Map<String, ?> env)
-      throws IOException {
+  public FileSystem newFileSystem(URI uri, Map<String, ?> env) throws IOException {
     return new HadoopFileSystem(this, uri.getHost(), uri.getPort());
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public <A extends BasicFileAttributes> A readAttributes(Path path,
-      Class<A> type, LinkOption... options)
+  public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options)
       throws IOException {
 
     if (type == BasicFileAttributes.class ||
-        type == HadoopBasicFileAttributes.class) {
+      type == HadoopBasicFileAttributes.class) {
       return (A) toHadoopPath(path).getAttributes();
     }
 
@@ -184,16 +176,14 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
   }
 
   @Override
-  public Map<String, Object> readAttributes(Path path, String attributes,
-      LinkOption... options) throws IOException {
+  public Map<String, Object> readAttributes(Path path, String attributes, LinkOption... options) throws IOException {
     return toHadoopPath(path).getFileSystem().readAttributes(
-        toHadoopPath(path), attributes, options);
+      toHadoopPath(path), attributes, options);
   }
 
   @Override
-  public void setAttribute(Path path, String attribute, Object value,
-      LinkOption... options) throws IOException {
+  public void setAttribute(Path path, String attribute, Object value, LinkOption... options) throws IOException {
     toHadoopPath(path).getFileSystem().setAttribute(toHadoopPath(path),
-        attribute, value, options);
+      attribute, value, options);
   }
 }
