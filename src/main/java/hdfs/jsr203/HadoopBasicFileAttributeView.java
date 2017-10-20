@@ -57,8 +57,6 @@ public class HadoopBasicFileAttributeView implements BasicFileAttributeView, IAt
     isSymLink
   }
 
-  ;
-
   private final HadoopPath path;
   private final boolean isHadoopView;
 
@@ -87,15 +85,15 @@ public class HadoopBasicFileAttributeView implements BasicFileAttributeView, IAt
   }
 
   @Override
-  public void setAttribute(String attribute, Object value, LinkOption[] options)
-    throws IOException {
-    if (AttrID.valueOf(attribute) == AttrID.lastModifiedTime) {
+  public void setAttribute(String attribute, Object value, LinkOption[] options) throws IOException {
+    AttrID attributeId = AttrID.valueOf(attribute);
+    if (attributeId == AttrID.lastModifiedTime) {
       setTimes((FileTime) value, null, null);
     }
-    if (AttrID.valueOf(attribute) == AttrID.lastAccessTime) {
+    if (attributeId == AttrID.lastAccessTime) {
       setTimes(null, (FileTime) value, null);
     }
-    if (AttrID.valueOf(attribute) == AttrID.creationTime) {
+    if (attributeId == AttrID.creationTime) {
       setTimes(null, null, (FileTime) value);
     }
   }

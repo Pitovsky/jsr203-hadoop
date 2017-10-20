@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.FileAttributeView;
+import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.FileStoreAttributeView;
 import java.nio.file.attribute.PosixFileAttributeView;
 
@@ -67,15 +68,19 @@ public class HadoopFileStore extends FileStore {
   }
 
   @Override
-  public boolean supportsFileAttributeView(
-      Class<? extends FileAttributeView> type) {
+  public boolean supportsFileAttributeView(Class<? extends FileAttributeView> type) {
     if (type == BasicFileAttributeView.class) {
       return this.system.supportedFileAttributeViews().contains("basic");
     }
     if (type == PosixFileAttributeView.class) {
       return this.system.supportedFileAttributeViews().contains("posix");
     }
-    // FIXME Implements all FileAttributeView checks
+    if (type == HadoopBasicFileAttributeView.class) {
+      return this.system.supportedFileAttributeViews().contains("hadoop");
+    }
+    if (type == FileOwnerAttributeView.class) {
+      return this.system.supportedFileAttributeViews().contains("owner");
+    }
     return false;
   }
 
@@ -85,8 +90,7 @@ public class HadoopFileStore extends FileStore {
   }
 
   @Override
-  public <V extends FileStoreAttributeView> V getFileStoreAttributeView(
-      Class<V> type) {
+  public <V extends FileStoreAttributeView> V getFileStoreAttributeView(Class<V> type) {
     return null;
   }
 

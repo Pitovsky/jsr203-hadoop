@@ -41,6 +41,12 @@ public class HadoopFileChannel extends FileChannel {
   }
 
   @Override
+  public int read(ByteBuffer dst, long position) throws IOException {
+    this.internalChannel = this.internalChannel.position(position);
+    return read(dst);
+  }
+
+  @Override
   public long read(ByteBuffer[] dsts, int offset, int length)
       throws IOException {
     throw new IOException("Imcomplete implementation");
@@ -48,7 +54,13 @@ public class HadoopFileChannel extends FileChannel {
 
   @Override
   public int write(ByteBuffer src) throws IOException {
-    throw new IOException("Imcomplete implementation");
+    return this.internalChannel.write(src);
+  }
+
+  @Override
+  public int write(ByteBuffer src, long position) throws IOException {
+    this.internalChannel = this.internalChannel.position(position);
+    return write(src);
   }
 
   @Override
@@ -80,7 +92,6 @@ public class HadoopFileChannel extends FileChannel {
 
   @Override
   public void force(boolean metaData) throws IOException {
-    throw new IOException("Imcomplete implementation");
   }
 
   @Override
@@ -92,17 +103,6 @@ public class HadoopFileChannel extends FileChannel {
   @Override
   public long transferFrom(ReadableByteChannel src, long position, long count)
       throws IOException {
-    throw new IOException("Imcomplete implementation");
-  }
-
-  @Override
-  public int read(ByteBuffer dst, long position) throws IOException {
-    this.internalChannel = this.internalChannel.position(position);
-    return this.internalChannel.read(dst);
-  }
-
-  @Override
-  public int write(ByteBuffer src, long position) throws IOException {
     throw new IOException("Imcomplete implementation");
   }
 

@@ -124,7 +124,15 @@ public class HadoopPosixFileAttributeView extends HadoopFileOwnerAttributeView
 
   @Override
   public void setAttribute(String attr, Object value, LinkOption[] options)
-    throws IOException {
+      throws IOException {
+    AttrID attributeId;
+    try {
+      attributeId = AttrID.valueOf(attr);
+      System.out.println("Setting attr " + attr + "=" + value);
+    } catch (IllegalArgumentException e) {
+      System.err.println("Invalid HDFS posix attr: " + attr);
+      return;
+    }
     // FIXME Implement HadoopPosixFileAttributeView.setAttribute()
     throw new UnsupportedOperationException();
   }
@@ -134,9 +142,9 @@ public class HadoopPosixFileAttributeView extends HadoopFileOwnerAttributeView
     case owner:
       return hfas.owner().getName();
     case group:
-      return hfas.owner().getName();
+      return hfas.group().getName();
     case permissions:
-      return hfas.owner().getName();
+      return hfas.permissions();
     default:
       return null;
     }
