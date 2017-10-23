@@ -18,13 +18,12 @@ package hdfs.jsr203;
 import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.nio.file.StandardOpenOption.APPEND;
-import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
-import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -71,7 +70,6 @@ import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileUtil;
 
@@ -88,6 +86,8 @@ public class HadoopFileSystem extends FileSystem {
   private boolean readOnly;
   private volatile boolean isOpen = true;
   private UserPrincipalLookupService userPrincipalLookupService;
+  private HadoopPath rootPath = new HadoopPath(this, new byte[]{'/'});
+
   private int hashcode = 0;  // cached hash code (created lazily)
 
 
@@ -120,7 +120,7 @@ public class HadoopFileSystem extends FileSystem {
     this.userPrincipalLookupService = new HadoopUserPrincipalLookupService(this);
   }
 
-  public HadoopFileSystem(FileSystemProvider provider, Map<String, ?> env) throws IOException {
+  public HadoopFileSystem(FileSystemProvider provider, Map<String, ?> env, URI root) throws IOException {
     this.provider = provider;
     this.userPrincipalLookupService = new HadoopUserPrincipalLookupService(this);
 
@@ -131,14 +131,16 @@ public class HadoopFileSystem extends FileSystem {
     if (env.containsKey(CORE_SITE_PATH_ENV)) {
       conf.addResource(new URL(env.get(CORE_SITE_PATH_ENV).toString()));
     }
-    conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
-    conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+
     for (Map.Entry<String, ?> config : env.entrySet()) {
       if (!config.getKey().equals(HDFS_SITE_PATH_ENV) && !config.getKey().equals(CORE_SITE_PATH_ENV)) {
         conf.set(config.getKey(), config.getValue().toString());
       }
     }
     this.fs = org.apache.hadoop.fs.FileSystem.get(conf);
+    if (root != null && root.getPath() != null) {
+      this.rootPath = new HadoopPath(this, root.getPath().getBytes());
+    }
   }
 
   private final void beginWrite() {
@@ -157,6 +159,10 @@ public class HadoopFileSystem extends FileSystem {
     //rwlock.readLock().unlock();
   }
 
+  public HadoopPath getRootPath() {
+    return rootPath;
+  }
+
   @Override
   public void close() throws IOException {
     this.fs.close();
@@ -165,7 +171,7 @@ public class HadoopFileSystem extends FileSystem {
   @Override
   public Iterable<FileStore> getFileStores() {
     ArrayList<FileStore> list = new ArrayList<>(1);
-    list.add(new HadoopFileStore(new HadoopPath(this, new byte[]{'/'})));
+    list.add(new HadoopFileStore(rootPath));
     return list;
   }
 
@@ -221,9 +227,7 @@ public class HadoopFileSystem extends FileSystem {
 
   @Override
   public Iterable<Path> getRootDirectories() {
-    ArrayList<Path> pathArr = new ArrayList<>();
-    pathArr.add(new HadoopPath(this, new byte[]{'/'}));
-    return pathArr;
+    return Collections.<Path>singleton(rootPath);
   }
 
   @Override
@@ -250,6 +254,7 @@ public class HadoopFileSystem extends FileSystem {
   public WatchService newWatchService() throws IOException {
     // Not implemented now
     // The Hadoop API for notification is not enough stable
+    System.err.println("Watch Service: NI");
     throw new IOException("Not implemented");
   }
 
@@ -362,10 +367,11 @@ public class HadoopFileSystem extends FileSystem {
   private void checkOptions(Set<? extends OpenOption> options) {
     // check for options of null type and option is an intance of StandardOpenOption
     for (OpenOption option : options) {
-      if (option == null)
+      if (option == null) {
         throw new NullPointerException();
-      if (!(option instanceof StandardOpenOption))
+      } if (!(option instanceof StandardOpenOption)) {
         throw new IllegalArgumentException();
+      }
     }
   }
 
@@ -395,13 +401,11 @@ public class HadoopFileSystem extends FileSystem {
     }
 
 
-    if (options.contains(WRITE) ||
-      options.contains(APPEND)) {
+    if (options.contains(WRITE) || options.contains(APPEND)) {
       checkWritable();
       beginRead();
       try {
-        final WritableByteChannel wbc = Channels.newChannel(
-          newOutputStream(path, options, attrs));
+        final WritableByteChannel wbc = Channels.newChannel(newOutputStream(path, options, attrs));
         long leftover = 0;
         if (options.contains(APPEND)) {
                     /*Entry e = getEntry0(path);
@@ -421,17 +425,18 @@ public class HadoopFileSystem extends FileSystem {
             return written;
           }
 
-          public SeekableByteChannel position(long pos)
-            throws IOException {
-            throw new UnsupportedOperationException();
+          public SeekableByteChannel position(long pos) throws IOException {
+            if (pos != written) {
+              throw new UnsupportedOperationException();
+            }
+            return this;
           }
 
           public int read(ByteBuffer dst) throws IOException {
             throw new UnsupportedOperationException();
           }
 
-          public SeekableByteChannel truncate(long size)
-            throws IOException {
+          public SeekableByteChannel truncate(long size) throws IOException {
             throw new UnsupportedOperationException();
           }
 
@@ -516,62 +521,20 @@ public class HadoopFileSystem extends FileSystem {
   // Returns an output stream for writing the contents into the specified
   // entry.
   public OutputStream newOutputStream(org.apache.hadoop.fs.Path path, Set<? extends OpenOption> options,
-                                      FileAttribute<?>... attrs)
-    throws IOException {
+                                      FileAttribute<?>... attrs) throws IOException {
     checkWritable();
-    boolean hasCreateNew = false;
-    boolean hasCreate = false;
-    boolean hasAppend = false;
-    for (OpenOption opt : options) {
-      if (opt == READ)
-        throw new IllegalArgumentException("READ not allowed");
-      if (opt == CREATE_NEW)
-        hasCreateNew = true;
-      if (opt == CREATE)
-        hasCreate = true;
-      if (opt == APPEND)
-        hasAppend = true;
+    if (options.contains(StandardOpenOption.CREATE_NEW) && !fs.exists(path)) {
+      throw new IOException("CREATE_NEW: File " + path + " is already exists");
+    } else if (!options.contains(StandardOpenOption.CREATE) && !fs.exists(path)) {
+      throw new IOException("WRITE: File " + path + " doesn't exist");
     }
-    //beginRead();                 // only need a readlock, the "update()" will
-        /*try {                        // try to obtain a writelock when the os is
-            ensureOpen();            // being closed.
-            //Entry e = getEntry0(path);
-            HadoopFileAttributes e = path.getAttributes();
-            if (e != null) {
-                if (e.isDirectory() || hasCreateNew)
-                    throw new FileAlreadyExistsException(path.toString());
-                if (hasAppend) {
-                    InputStream is = getInputStream(e);
-                    OutputStream os = getOutputStream(new Entry(e, Entry.NEW));
-                    copyStream(is, os);
-                    is.close();
-                    return os;
-                }
-                return getOutputStream(new Entry(e, Entry.NEW));
-            } else {
-                if (!hasCreate && !hasCreateNew)
-                    throw new NoSuchFileException(path.toString());
-                checkParents(path);
-                return getOutputStream(new Entry(path, Entry.NEW));
-            }
-        } finally {
-            //endRead();
-        }*/
-
-    FSDataOutputStream outputStream = this.fs.create(path);
-        /*
-        for (int i = 0; i < attrs.length; i++) {
-        	FileAttribute<?> item = attrs[i];
-			if (item.value().getClass() == PosixFilePermissions.class) {
-        		Set<PosixFilePermission> itemPs = (Set<PosixFilePermission>) item.value();
-				FsPermission p = FsPermission.valueOf("-" + PosixFilePermissions.toString(itemPs));
-        		this.fs.setPermission(path, p);
-        		break;
-        	}
-        	System.out.println(item.getClass());
-        }
-        */
-    return outputStream;
+    if (options.contains(StandardOpenOption.APPEND)) {
+      return fs.append(path);
+    }
+    if (options.contains(StandardOpenOption.WRITE)) {
+      return fs.create(path, true);
+    }
+    throw new IOException("HDFS file cannot be opened as " + options);
   }
 
   private FSDataInputStream getInputStream(org.apache.hadoop.fs.Path path) throws IOException {
@@ -600,15 +563,8 @@ public class HadoopFileSystem extends FileSystem {
     }
   }
 
-  private boolean exists(byte[] path)
-    throws IOException {
-    beginRead();
-    try {
-      ensureOpen();
-      return this.fs.exists(new HadoopPath(this, path).getRawResolvedPath());
-    } finally {
-      endRead();
-    }
+  private boolean exists(byte[] path) throws IOException {
+    return exists(new HadoopPath(this, path).getRawResolvedPath());
   }
 
   public FileStore getFileStore(final HadoopPath path) {

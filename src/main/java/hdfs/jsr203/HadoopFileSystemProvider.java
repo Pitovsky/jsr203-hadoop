@@ -35,6 +35,7 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -112,6 +113,13 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
 
   @Override
   public Path getPath(URI uri) {
+    if (fileSystem == null) {
+      try {
+        fileSystem = newFileSystem(uri, Collections.<String, Object>emptyMap());
+      } catch (IOException e) {
+        throw new FileSystemNotFoundException(e.getMessage());
+      }
+    }
     return getFileSystem(uri).getPath(uri.getPath());
   }
 
@@ -157,7 +165,7 @@ public class HadoopFileSystemProvider extends FileSystemProvider {
     if (uri.getHost() != null) {
       return new HadoopFileSystem(this, uri.getHost(), uri.getPort());
     }
-    return new HadoopFileSystem(this, env);
+    return new HadoopFileSystem(this, env, uri);
   }
 
   @SuppressWarnings("unchecked")
